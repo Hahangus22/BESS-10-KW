@@ -7,48 +7,6 @@
       "md5": "",
       "mandatory": false,
       "notes": "initial stable"
-    },
-    {
-      "version": "0.1.2",
-      "url": "https://raw.githubusercontent.com/elbi-graphene/network_module/main/firmware-ota/v0.1.2/firmware.bin",
-      "md5": "",
-      "mandatory": false,
-      "notes": "fix test ota update"
-    },
-    {
-      "version": "0.2.0",
-      "url": "https://raw.githubusercontent.com/elbi-graphene/network_module/main/firmware-ota/v0.2.0/firmware_0_2_0.bin",
-      "md5": "",
-      "mandatory": false,
-      "notes": "add at command for system time"
-    },
-    {
-      "version": "0.2.1",
-      "url": "https://raw.githubusercontent.com/elbi-graphene/network_module/main/firmware-ota/v0.2.1/firmware_0_2_1.bin",
-      "md5": "",
-      "mandatory": false,
-      "notes": "auto save netmode value"
-    },
-    {
-      "version": "0.2.2",
-      "url": "https://raw.githubusercontent.com/elbi-graphene/network_module/main/firmware-ota/v0.2.2/firmware_0_2_2.bin",
-      "md5": "",
-      "mandatory": false,
-      "notes": ""
-    },
-    {
-      "version": "0.2.3",
-      "url": "https://raw.githubusercontent.com/elbi-graphene/network_module/main/firmware-ota/v0.2.3/firmware_0_2_3.bin",
-      "md5": "",
-      "mandatory": false,
-      "notes": ""
-    },
-    {
-      "version": "0.2.4",
-      "url": "https://raw.githubusercontent.com/elbi-graphene/network_module/main/firmware-ota/v0.2.4/firmware_0_2_4.bin",
-      "md5": "",
-      "mandatory": false,
-      "notes": ""
     }
   ]
 }
