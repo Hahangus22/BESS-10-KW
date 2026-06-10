@@ -3,7 +3,7 @@
   "versions": [
     {
       "version": "0.1.1",
-      "url": "https://github.com/Hahangus22/BESS-10-KW/blob/main/fimware/V1.1/firmware.bin",
+      "url": "https://github.com/Hahangus22/BESS-10-KW/tree/main/fimware/v1.1",
       "md5": "",
       "mandatory": false,
       "notes": "initial stable"
