@@ -1,0 +1,836 @@
+#include <TFT_eSPI.h>
+#include <TouchScreen.h>
+#include <SPI.h>
+#include <SD.h>
+
+#define SD_CS 5 // Pin CS untuk SD Card
+bool sdCardReady = false;
+
+
+TFT_eSPI tft = TFT_eSPI();
+
+// --- KONFIGURASI TOUCHSCREEN SESUAI esp32_touchscreen.ino ---
+const int XP = 27, XM = 15, YP = 4, YM = 14; 
+TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
+
+#define MINPRESSURE 100
+#define MAXPRESSURE 1000
+// Kalibrasi Koordinat 12-bit (Default ESP32) dari esp32_touchscreen.ino
+const int coords[] = {3800, 300, 3800, 300}; 
+
+// State Halaman & Touch
+int currentPage = 0;      // 0: Dashboard (Gauges), 1: Cells Grid
+bool showModal = false;   // State detail modal (hanya di Halaman Cells)
+int modalType = 0;        // 1: Cell, 2: Temp
+int modalId = 0;          // ID 1-16 atau 1-4
+unsigned long lastTouchTime = 0;
+const unsigned long touchDebounce = 300;    // Debounce 300ms
+unsigned long lastTouchPoll = 0;
+const unsigned long touchPollInterval = 50;  // Poll touch tiap 50ms
+
+// --- LOGIKA SLEEP MODE (10 DETIK UNTUK TESTING) ---
+bool isSleeping = false;
+unsigned long lastActivityTime = 0;
+const unsigned long sleepTimeout = 10000;    // 10 detik
+
+// --- LOGIKA ANIMASI JALUR SIRKUIT ---
+unsigned long lastAnimUpdate = 0;
+const unsigned long animInterval = 80;       // Update tiap 80ms
+int animStep = 0;
+int prev_x1 = 0, prev_y1 = 0;
+int prev_x2 = 0, prev_y2 = 0;
+int prev_x3 = 0, prev_y3 = 0;
+int prev_x4 = 0, prev_y4 = 0;
+
+
+// --- KONTROL BACKLIGHT FISIK (OPSIONAL) ---
+// Hubungkan pin LED/BL layar ke GPIO ESP32 yang masih kosong (contoh: GPIO 18, 19, atau 0).
+// Silakan hapus tanda komentar "//" di bawah dan ganti angkanya jika sudah menghubungkan kabel fisiknya.
+// #define TFT_BL 23
+
+// Definisikan Palet Warna RGB565 Premium - Tema Terang (Light Mode)
+#define COLOR_BG        0xFFFF  // Background Putih Bersih
+#define COLOR_CARD      0xF7F9  // Background Kartu (Abu-abu sangat muda/bersih)
+#define COLOR_BORDER    0xCFDF  // Garis tepi kartu (Abu-abu pastel)
+#define COLOR_CIRCUIT   0xD69A  // Jalur sirkuit redup (Abu-abu muda)
+#define COLOR_TEXT      0x2104  // Teks utama Charcoal nyaman di mata
+#define COLOR_TEXT_DIM  0x7BEF  // Teks redup (Medium Grey)
+#define COLOR_CYAN      0x03ED  // Sian Terang Kontras
+#define COLOR_CYAN_BG   0xE7FD  // Sian redup/pastel background
+#define COLOR_ORANGE    0xE4A0  // Oranye Terang Kontras
+#define COLOR_ORANGE_BG 0xFEDF  // Oranye redup/pastel background
+#define COLOR_BLUE      0x027F  // Biru Terang untuk SOC
+#define COLOR_BLUE_BG   0xD7FF  // Biru redup/pastel background
+#define COLOR_PURPLE    0x8019  // Ungu Terang Kontras
+#define COLOR_PURPLE_BG 0xF51F  // Ungu redup/pastel background
+#define COLOR_GREEN     0x0480  // Hijau Daun Terang Kontras
+#define COLOR_WHITE     0xFFFF
+
+// Simulasi Data BESS
+float soc = 96.0;
+float soh = 98.5;
+float voltage = 52.4;
+float current = 15.4;
+float power = 0.80;
+float temp = 28.5;
+
+// Data Telemetry Detail Cells (16 Cell Voltase & 4 Sensor Suhu)
+float cells[16];
+float cell_temps[4];
+
+unsigned long lastUpdate = 0;
+const unsigned long updateInterval = 1000; // Update otomatis tiap 1 detik
+
+// Helper Fungsi untuk Menggambar Arc yang Halus & Tebal
+void drawArc(int x, int y, int r_in, int r_out, int start_angle, int end_angle, uint16_t color) {
+  if (start_angle > end_angle) {
+    int temp = start_angle;
+    start_angle = end_angle;
+    end_angle = temp;
+  }
+  for (int a = start_angle; a < end_angle; a += 3) {
+    float rad1 = (a - 90) * 0.0174532925;
+    float rad2 = (min(a + 3, end_angle) - 90) * 0.0174532925;
+    
+    float cos1 = cos(rad1);
+    float sin1 = sin(rad1);
+    float cos2 = cos(rad2);
+    float sin2 = sin(rad2);
+    
+    int x1_in = x + r_in * cos1;
+    int y1_in = y + r_in * sin1;
+    int x1_out = x + r_out * cos1;
+    int y1_out = y + r_out * sin1;
+    
+    int x2_in = x + r_in * cos2;
+    int y2_in = y + r_in * sin2;
+    int x2_out = x + r_out * cos2;
+    int y2_out = y + r_out * sin2;
+    
+    tft.fillTriangle(x1_in, y1_in, x1_out, y1_out, x2_in, y2_in, color);
+    tft.fillTriangle(x1_out, y1_out, x2_out, y2_out, x2_in, y2_in, color);
+  }
+}
+
+// Mengacak data secara realistis
+void randomizeData() {
+  soc += random(-3, 2) * 0.1;
+  if (soc > 100.0) soc = 100.0;
+  if (soc < 10.0) soc = 96.0;
+  
+  soh += random(-5, 4) * 0.1;
+  if (soh > 100.0) soh = 100.0;
+  if (soh < 85.0) soh = 98.5;
+  
+  voltage += random(-8, 9) * 0.1;
+  if (voltage > 55.0) voltage = 55.0;
+  if (voltage < 48.0) voltage = 48.0;
+  
+  current += random(-15, 16) * 0.2;
+  if (current > 45.0) current = 45.0;
+  if (current < 0.0) current = 0.0;
+  
+  power = (voltage * current) / 1000.0;
+  
+  temp += random(-4, 5) * 0.2;
+  if (temp > 38.0) temp = 38.0;
+  if (temp < 25.0) temp = 25.0;
+
+  for (int i = 0; i < 16; i++) {
+    cells[i] += random(-12, 13) * 0.001;
+    if (cells[i] > 3.699) cells[i] = 3.699;
+    if (cells[i] < 3.499) cells[i] = 3.499;
+  }
+  for (int i = 0; i < 4; i++) {
+    cell_temps[i] += random(-4, 5) * 0.1;
+    if (cell_temps[i] > 45.0) cell_temps[i] = 45.0;
+    if (cell_temps[i] < 25.0) cell_temps[i] = 25.0;
+  }
+}
+
+// Gambar Aksen Dekorasi Jalur Sirkuit Elektronik (Disesuaikan dengan koordinat baru)
+void drawCircuitLines() {
+  // Jalur Kiri Atas ke Tengah (Tegangan ke SOC)
+  tft.drawLine(143, 115, 180, 115, COLOR_CIRCUIT);
+  tft.drawLine(180, 115, 210, 145, COLOR_CIRCUIT);
+  tft.fillCircle(180, 115, 3, COLOR_CIRCUIT);
+  
+  // Jalur Kanan Atas ke Tengah (Arus ke SOC)
+  tft.drawLine(337, 115, 300, 115, COLOR_CIRCUIT);
+  tft.drawLine(300, 115, 270, 145, COLOR_CIRCUIT);
+  tft.fillCircle(300, 115, 3, COLOR_CIRCUIT);
+  
+  // Jalur Kiri Bawah ke Tengah (Suhu ke SOC)
+  tft.drawLine(143, 255, 180, 255, COLOR_CIRCUIT);
+  tft.drawLine(180, 255, 210, 225, COLOR_CIRCUIT);
+  tft.fillCircle(180, 255, 3, COLOR_CIRCUIT);
+  
+  // Jalur Kanan Bawah ke Tengah (Daya ke SOC)
+  tft.drawLine(337, 255, 300, 255, COLOR_CIRCUIT);
+  tft.drawLine(300, 255, 270, 225, COLOR_CIRCUIT);
+}
+
+void updateCircuitAnimation() {
+  // 1. Hapus dot lama dengan menggambar lingkaran putih (COLOR_BG) di posisi sebelumnya
+  if (prev_x1 > 0) {
+    tft.fillCircle(prev_x1, prev_y1, 4, COLOR_BG);
+    tft.fillCircle(prev_x2, prev_y2, 4, COLOR_BG);
+    tft.fillCircle(prev_x3, prev_y3, 4, COLOR_BG);
+    tft.fillCircle(prev_x4, prev_y4, 4, COLOR_BG);
+  }
+
+  // 2. Gambar ulang garis sirkuit abu-abu untuk memulihkan piksel garis yang terhapus
+  drawCircuitLines();
+  
+  // 3. Hitung koordinat dot berjalan (Langkah 0 sampai 9)
+  // Kiri Atas (Tegangan -> SOC)
+  int x1 = 0, y1 = 0;
+  if (animStep < 5) {
+    x1 = 143 + animStep * 7;
+    y1 = 115;
+  } else {
+    int ds = animStep - 5;
+    x1 = 180 + ds * 6;
+    y1 = 115 + ds * 6;
+  }
+  
+  // Kanan Atas (Arus -> SOC)
+  int x2 = 0, y2 = 0;
+  if (animStep < 5) {
+    x2 = 337 - animStep * 7;
+    y2 = 115;
+  } else {
+    int ds = animStep - 5;
+    x2 = 300 - ds * 6;
+    y2 = 115 + ds * 6;
+  }
+  
+  // Kiri Bawah (Suhu -> SOC)
+  int x3 = 0, y3 = 0;
+  if (animStep < 5) {
+    x3 = 143 + animStep * 7;
+    y3 = 255;
+  } else {
+    int ds = animStep - 5;
+    x3 = 180 + ds * 6;
+    y3 = 255 - ds * 6;
+  }
+  
+  // Kanan Bawah (Daya -> SOC)
+  int x4 = 0, y4 = 0;
+  if (animStep < 5) {
+    x4 = 337 - animStep * 7;
+    y4 = 255;
+  } else {
+    int ds = animStep - 5;
+    x4 = 300 - ds * 6;
+    y4 = 255 - ds * 6;
+  }
+  
+  // Gambar dot berwarna sesuai tema gauge masing-masing
+  tft.fillCircle(x1, y1, 4, COLOR_CYAN);
+  tft.fillCircle(x2, y2, 4, COLOR_ORANGE);
+  tft.fillCircle(x3, y3, 4, COLOR_CYAN);
+  tft.fillCircle(x4, y4, 4, COLOR_PURPLE);
+  
+  // Simpan koordinat saat ini untuk dihapus di frame berikutnya
+  prev_x1 = x1; prev_y1 = y1;
+  prev_x2 = x2; prev_y2 = y2;
+  prev_x3 = x3; prev_y3 = y3;
+  prev_x4 = x4; prev_y4 = y4;
+
+  // Maju ke step berikutnya (0 s/d 9)
+  animStep = (animStep + 1) % 10;
+}
+
+void logDataToSD() {
+  if (!sdCardReady) return;
+  
+  File logFile = SD.open("/datalog1.csv", FILE_APPEND);
+  if (logFile) {
+    logFile.print(millis());
+    logFile.print(",");
+    logFile.print(voltage, 1);
+    logFile.print(",");
+    logFile.print(current, 1);
+    logFile.print(",");
+    logFile.print((int)soc);
+    logFile.print(",");
+    logFile.print(soh, 1);
+    logFile.print(",");
+    logFile.print((int)temp);
+    logFile.print(",");
+    logFile.println(power, 2);
+    logFile.close();
+    Serial.println("Data telemetry berhasil disimpan ke SD Card.");
+  } else {
+    Serial.println("Gagal membuka datalog1.csv untuk menulis data.");
+  }
+}
+
+void drawEcoLogo() {
+  tft.drawCircle(30, 32, 16, COLOR_GREEN);
+  tft.drawCircle(30, 32, 15, COLOR_GREEN);
+  tft.fillTriangle(30, 22, 24, 32, 29, 32, COLOR_ORANGE);
+  tft.fillTriangle(29, 32, 35, 32, 30, 42, COLOR_ORANGE);
+}
+
+void drawStatusLogo() {
+  tft.drawCircle(450, 32, 16, COLOR_CYAN);
+  tft.drawCircle(450, 32, 15, COLOR_CYAN);
+  tft.fillRect(444, 28, 12, 8, COLOR_TEXT);
+  tft.fillRect(448, 25, 2, 3, COLOR_TEXT);
+  tft.fillRect(452, 25, 2, 3, COLOR_TEXT);
+  tft.drawLine(450, 36, 450, 42, COLOR_TEXT);
+}
+
+// Menggambar Seluruh Frame Statis Dashboard Utama
+void drawStaticDashboard() {
+  tft.fillScreen(COLOR_BG);
+  
+  drawCircuitLines();
+  drawEcoLogo();
+  drawStatusLogo();
+  
+  tft.setTextDatum(MC_DATUM);
+  tft.setTextColor(COLOR_TEXT);
+  tft.setTextFont(4);
+  tft.drawString("MONITOR BESS 10kW", 240, 32);
+  
+  // Letakkan label static di atas masing-masing lingkaran (Y=52 dan Y=192)
+  tft.setTextFont(2);
+  tft.setTextColor(COLOR_CYAN);
+  tft.drawString("Tegangan", 95, 52);
+  
+  tft.setTextColor(COLOR_ORANGE);
+  tft.drawString("Arus", 385, 52);
+  
+  tft.setTextColor(COLOR_BLUE);
+  tft.drawString("State of Charge", 240, 75);
+  
+  tft.setTextColor(COLOR_CYAN);
+  tft.drawString("Suhu", 95, 192);
+  
+  tft.setTextColor(COLOR_PURPLE);
+  tft.drawString("Daya", 385, 192);
+}
+
+void updateDashboard() {
+  tft.setTextDatum(MC_DATUM);
+  
+  // 1. GAUGE TEGANGAN (Center: 95, 115 | R_in: 38, R_out: 48)
+  drawArc(95, 115, 38, 48, 130, 410, COLOR_CYAN_BG);
+  float v_pct = (voltage - 48.0) / (55.0 - 48.0);
+  if (v_pct < 0) v_pct = 0; if (v_pct > 1) v_pct = 1;
+  int v_angle = 130 + (v_pct * 280);
+  drawArc(95, 115, 38, 48, 130, v_angle, COLOR_CYAN);
+  tft.setTextColor(COLOR_TEXT, COLOR_BG);
+  tft.setTextFont(4);
+  tft.drawString(String(voltage, 1), 95, 107);
+  tft.setTextFont(2);
+  tft.drawString("V", 95, 126);
+  
+  // 2. GAUGE ARUS (Center: 385, 115 | R_in: 38, R_out: 48)
+  drawArc(385, 115, 38, 48, 310, 590, COLOR_ORANGE_BG);
+  float a_pct = current / 45.0;
+  if (a_pct < 0) a_pct = 0; if (a_pct > 1) a_pct = 1;
+  int a_angle = 310 + (a_pct * 280);
+  drawArc(385, 115, 38, 48, 310, a_angle, COLOR_ORANGE);
+  tft.setTextColor(COLOR_TEXT, COLOR_BG);
+  tft.setTextFont(4);
+  tft.drawString(String(current, 1), 385, 107);
+  tft.setTextFont(2);
+  tft.drawString("A", 385, 126);
+  
+  // 3. GAUGE SOC (Center: 240, 160 | R_in: 60, R_out: 70)
+  drawArc(240, 160, 60, 70, 0, 360, COLOR_BLUE_BG);
+  int soc_angle = (soc / 100.0) * 360;
+  drawArc(240, 160, 60, 70, 0, soc_angle, COLOR_BLUE);
+  tft.setTextColor(COLOR_TEXT, COLOR_BG);
+  tft.setTextFont(7);
+  tft.drawString(String((int)soc), 230, 158);
+  tft.setTextFont(4);
+  tft.drawString("%", 268, 164);
+  
+  tft.setTextFont(2);
+  tft.setTextColor(COLOR_CYAN, COLOR_BG);
+  tft.drawString("SOH: " + String(soh, 1) + "%", 240, 198);
+  tft.drawRect(230, 182, 20, 10, COLOR_CYAN);
+  tft.fillRect(250, 185, 2, 4, COLOR_CYAN);
+  tft.fillRect(232, 184, 16, 6, COLOR_CYAN);
+
+  // 4. GAUGE SUHU (Center: 95, 255 | R_in: 38, R_out: 48 | Cocok dengan Tegangan: 130 s/d 410)
+  drawArc(95, 255, 38, 48, 130, 410, COLOR_CYAN_BG);
+  float t_pct = temp / 50.0;
+  if (t_pct > 1.0) t_pct = 1.0;
+  int temp_angle = 130 + (t_pct * 280);
+  drawArc(95, 255, 38, 48, 130, temp_angle, COLOR_CYAN);
+  tft.setTextColor(COLOR_TEXT, COLOR_BG);
+  tft.setTextFont(4);
+  tft.drawString(String((int)temp), 95, 247);
+  tft.setTextFont(2);
+  tft.drawString("C", 95, 266);
+
+  // 5. GAUGE DAYA (Center: 385, 255 | R_in: 38, R_out: 48 | Cocok dengan Arus: 310 s/d 590)
+  drawArc(385, 255, 38, 48, 310, 590, COLOR_PURPLE_BG);
+  float p_pct = power / 2.5;
+  if (p_pct > 1.0) p_pct = 1.0;
+  int p_angle = 310 + (p_pct * 280);
+  drawArc(385, 255, 38, 48, 310, p_angle, COLOR_PURPLE);
+  tft.setTextColor(COLOR_TEXT, COLOR_BG);
+  tft.setTextFont(4);
+  tft.drawString(String(power, 2), 385, 247);
+  tft.setTextFont(2);
+  tft.drawString("kW", 385, 266);
+}
+
+// Menggambar Seluruh Frame Statis Halaman Cells
+void drawStaticCells() {
+  tft.fillScreen(COLOR_BG);
+  
+  // 1. Tombol BACK (Pojok Kiri Atas)
+  tft.fillRoundRect(10, 10, 70, 30, 4, COLOR_CARD);
+  tft.drawRoundRect(10, 10, 70, 30, 4, COLOR_BORDER);
+  tft.setTextColor(COLOR_TEXT);
+  tft.setTextDatum(MC_DATUM);
+  tft.setTextFont(2);
+  tft.drawString("BACK", 45, 25);
+  
+  // 2. Judul Utama
+  tft.setTextDatum(ML_DATUM);
+  tft.setTextColor(COLOR_TEXT);
+  tft.setTextFont(4);
+  tft.drawString("CELL STATUS", 95, 25);
+  
+  // 3. Sub-judul Kiri (Sistem BMS)
+  tft.setTextDatum(TL_DATUM);
+  tft.setTextFont(1);
+  tft.setTextColor(COLOR_CYAN);
+  tft.drawString("SISTEM BMS (Voltase)", 15, 48);
+  
+  // 4. Sub-judul Kanan (Sensor Thermal)
+  tft.setTextDatum(TR_DATUM);
+  tft.setTextFont(1);
+  tft.setTextColor(COLOR_PURPLE);
+  tft.drawString("THERMAL (Suhu)", 465, 48);
+  
+  // 5. Box Sel Voltase (16 Cells: 4x4 Grid)
+  int w = 80;
+  int h = 46;         
+  int col_space = 6;
+  int row_space = 8;
+  
+  for (int r = 0; r < 4; r++) {
+    int y = 65 + r * (h + row_space);
+    for (int c = 0; c < 4; c++) {
+      int x = 10 + c * (w + col_space);
+      int cell_num = r * 4 + c + 1;
+      
+      tft.fillRoundRect(x, y, w, h, 4, COLOR_CARD);
+      tft.drawRoundRect(x, y, w, h, 4, COLOR_BORDER);
+      tft.fillRect(x + 2, y + h - 3, w - 4, 2, COLOR_CYAN);
+      
+      tft.setTextColor(COLOR_TEXT_DIM);
+      tft.setTextFont(1);
+      tft.setTextDatum(ML_DATUM);
+      tft.drawString("C" + String(cell_num), x + 6, y + h/2);
+    }
+  }
+  
+  // 6. Box Sensor Suhu (4 Sensors)
+  int tx = 360;
+  int tw = 110;
+  int th = 46;
+  int t_space = 8;
+  
+  for (int i = 0; i < 4; i++) {
+    int ty = 65 + i * (th + t_space);
+    
+    tft.drawRoundRect(tx, ty, tw, th, 4, COLOR_BORDER);
+    tft.fillRoundRect(tx + 1, ty + 1, tw - 2, th - 2, 4, COLOR_PURPLE_BG);
+    
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextFont(1);
+    tft.setTextColor(COLOR_PURPLE);
+    tft.drawString("SUHU " + String(i + 1), tx + tw/2, ty + 12);
+  }
+
+  // 7. Frame Status Bar di Bawah
+  tft.fillRoundRect(10, 285, 460, 28, 4, COLOR_CARD);
+  tft.drawRoundRect(10, 285, 460, 28, 4, COLOR_BORDER);
+}
+
+void updateCells() {
+  int w = 80;
+  int h = 46;
+  int col_space = 6;
+  int row_space = 8;
+  
+  tft.setTextFont(1);
+  tft.setTextDatum(MR_DATUM);
+  tft.setTextColor(COLOR_TEXT, COLOR_CARD);
+  
+  for (int r = 0; r < 4; r++) {
+    int y = 65 + r * (h + row_space);
+    for (int c = 0; c < 4; c++) {
+      int x = 10 + c * (w + col_space);
+      int cell_num = r * 4 + c;
+      tft.drawString(String(cells[cell_num], 3) + "V", x + w - 6, y + h/2);
+    }
+  }
+  
+  int tx = 360;
+  int tw = 110;
+  int th = 46;
+  int t_space = 8;
+  
+  tft.setTextFont(2);
+  tft.setTextDatum(MC_DATUM);
+  tft.setTextColor(COLOR_TEXT, COLOR_PURPLE_BG);
+  
+  for (int i = 0; i < 4; i++) {
+    int ty = 65 + i * (th + t_space);
+    tft.drawString(String(cell_temps[i], 1) + " C", tx + tw/2, ty + 30);
+  }
+  
+  // Hitung Voltase Min/Max/Avg Temp
+  float min_v = cells[0];
+  float max_v = cells[0];
+  int min_idx = 0;
+  int max_idx = 0;
+  float sum_v = 0.0;
+  
+  for (int i = 0; i < 16; i++) {
+    sum_v += cells[i];
+    if (cells[i] < min_v) { min_v = cells[i]; min_idx = i; }
+    if (cells[i] > max_v) { max_v = cells[i]; max_idx = i; }
+  }
+  float sum_t = 0.0;
+  for (int i = 0; i < 4; i++) sum_t += cell_temps[i];
+  float avg_temp = sum_t / 4.0;
+  
+  tft.setTextFont(1);
+  tft.setTextColor(COLOR_TEXT, COLOR_CARD);
+  
+  tft.setTextDatum(ML_DATUM);
+  tft.drawString("Volt: " + String(sum_v, 2) + "V", 18, 299);
+  
+  tft.setTextDatum(MC_DATUM);
+  String stats = "Max: C" + String(max_idx+1) + " (" + String(max_v, 3) + "V) | Min: C" + String(min_idx+1) + " (" + String(min_v, 3) + "V)";
+  tft.drawString(stats, 240, 299);
+  
+  tft.setTextDatum(MR_DATUM);
+  tft.drawString("Avg Temp: " + String(avg_temp, 1) + " C", 462, 299);
+}
+
+void updateModalContent(int type, int id) {
+  tft.fillRect(95, 90, 290, 120, COLOR_BG);
+  tft.setTextDatum(MC_DATUM);
+  tft.setTextColor(COLOR_TEXT);
+  
+  if (type == 1) {
+    tft.setTextFont(4);
+    tft.drawString(String(cells[id - 1], 3) + " V", 240, 115);
+    
+    tft.setTextFont(2);
+    float v = cells[id - 1];
+    String status = "NORMAL";
+    uint16_t statusColor = COLOR_GREEN;
+    if (v > 3.65) {
+      status = "OVERVOLT";
+      statusColor = TFT_RED;
+    } else if (v < 3.51) {
+      status = "UNDERVOLT";
+      statusColor = TFT_RED;
+    }
+    
+    tft.drawString("Status: ", 200, 155);
+    tft.setTextColor(statusColor);
+    tft.drawString(status, 270, 155);
+    
+    tft.setTextColor(COLOR_TEXT);
+    tft.drawString("Hambatan: " + String(1.1 + id * 0.05, 1) + " mOhm", 240, 175);
+    tft.drawString("Kapasitas: 100 Ah", 240, 195);
+  } else {
+    tft.setTextFont(4);
+    tft.drawString(String(cell_temps[id - 1], 1) + " C", 240, 115);
+    
+    tft.setTextFont(2);
+    float t = cell_temps[id - 1];
+    String status = "NORMAL";
+    uint16_t statusColor = COLOR_GREEN;
+    if (t > 40.0) {
+      status = "PANAS";
+      statusColor = TFT_RED;
+    }
+    
+    tft.drawString("Status: ", 200, 155);
+    tft.setTextColor(statusColor);
+    tft.drawString(status, 270, 155);
+    
+    tft.setTextColor(COLOR_TEXT);
+    tft.drawString("Kondisi: STABIL", 240, 175);
+    tft.drawString("Posisi: MODUL " + String(id), 240, 195);
+  }
+}
+
+void drawModal(int type, int id) {
+  // Modal Body menggunakan putih bersih di atas background halaman
+  tft.drawRoundRect(89, 49, 302, 222, 9, COLOR_BORDER);
+  tft.fillRoundRect(90, 50, 300, 220, 8, COLOR_BG);
+  tft.drawRoundRect(90, 50, 300, 220, 8, type == 1 ? COLOR_CYAN : COLOR_PURPLE);
+  tft.fillRoundRect(92, 52, 296, 35, 6, type == 1 ? COLOR_CYAN : COLOR_PURPLE);
+  
+  tft.setTextDatum(MC_DATUM);
+  tft.setTextColor(COLOR_WHITE);
+  tft.setTextFont(2);
+  if (type == 1) {
+    tft.drawString("DETAIL CELL C" + String(id), 240, 69);
+  } else {
+    tft.drawString("DETAIL SENSOR SUHU " + String(id), 240, 69);
+  }
+  
+  updateModalContent(type, id);
+  
+  // Tombol Tutup (Menggunakan warna teks utama/charcoal)
+  tft.fillRoundRect(180, 215, 120, 35, 6, COLOR_TEXT);
+  tft.setTextColor(COLOR_BG);
+  tft.setTextFont(2);
+  tft.drawString("TUTUP", 240, 232);
+}
+
+// --- FUNGSI BACA SENTUHAN SEPERTI esp32_touchscreen.ino ---
+boolean Touch_getXY(uint16_t *x, uint16_t *y) {
+  TSPoint p = ts.getPoint();
+  
+  // Kembalikan segera pin control LCD ke mode OUTPUT
+  pinMode(YP, OUTPUT);      
+  pinMode(XM, OUTPUT);
+  digitalWrite(YP, HIGH);   
+  digitalWrite(XM, HIGH);
+  
+  bool pressed = (p.z > MINPRESSURE && p.z < MAXPRESSURE);
+  if (pressed) {
+    // Mapping rotasi 1 (Landscape)
+    *x = map(p.y, coords[0], coords[1], 0, 480);
+    *y = map(p.x, coords[3], coords[2], 0, 320); // Dibalik agar Y tidak terbalik
+  }
+  return pressed;
+}
+
+// --- FUNGSI SLEEP & WAKE ---
+void goToSleep() {
+  isSleeping = true;
+  tft.fillScreen(TFT_BLACK); // Menggambar layar hitam penuh
+  #ifdef TFT_BL
+  digitalWrite(TFT_BL, LOW); // Matikan lampu backlight (layar gelap total!)
+  #endif
+  prev_x1 = 0; // Reset koordinat animasi agar tidak meninggalkan residu putih saat bangun
+  Serial.println("LCD memasuki Sleep Mode (Black Screensaver & Backlight Off).");
+}
+
+void wakeUp() {
+  #ifdef TFT_BL
+  digitalWrite(TFT_BL, HIGH); // Nyalakan kembali lampu backlight
+  #endif
+  prev_x1 = 0; // Reset koordinat animasi agar digambar segar
+  
+  // Gambar ulang layout statis & dinamis sesuai halaman aktif
+  if (currentPage == 0) {
+    drawStaticDashboard();
+    updateDashboard();
+  } else {
+    drawStaticCells();
+    updateCells();
+    if (showModal) {
+      drawModal(modalType, modalId);
+    }
+  }
+  isSleeping = false;
+  lastActivityTime = millis();
+  Serial.println("LCD Woken Up.");
+}
+
+void setup() {
+  #ifdef TFT_BL
+  pinMode(TFT_BL, OUTPUT);
+  digitalWrite(TFT_BL, HIGH); // Nyalakan backlight di awal
+  #endif
+
+  Serial.begin(115200);
+
+  // Inisialisasi SD Card
+  Serial.print("Initializing SD card...");
+  if (!SD.begin(SD_CS)) {
+    Serial.println(" failed! SD Card tidak terdeteksi.");
+    sdCardReady = false;
+  } else {
+    Serial.println(" success! SD Card siap.");
+    sdCardReady = true;
+    
+    // Buat file datalog.csv jika belum ada
+    if (!SD.exists("/datalog1.csv")) {
+      File logFile = SD.open("/datalog1.csv", FILE_WRITE);
+      if (logFile) {
+        logFile.println("Time_ms,Voltage_V,Current_A,SOC_pct,SOH_pct,Temp_C,Power_kW");
+        logFile.close();
+        Serial.println("File datalog1.csv baru berhasil dibuat.");
+      }
+    }
+  }
+
+  tft.begin();
+  tft.setRotation(1); // Mode Landscape (480x320)
+  
+  // Inisialisasi data telemetry awal
+  for (int i = 0; i < 16; i++) {
+    cells[i] = 3.52 + random(0, 15) * 0.01;
+  }
+  for (int i = 0; i < 4; i++) {
+    cell_temps[i] = 29.5 + random(0, 4) * 0.5;
+  }
+  
+  // Gambar Tampilan Dashboard Utama (Terang)
+  drawStaticDashboard();
+  
+  randomizeData();
+  updateDashboard();
+  
+  unsigned long now = millis();
+  lastUpdate = now;
+  lastActivityTime = now; // Inisialisasi aktivitas pertama
+  
+  Serial.println("BESS Dashboard Light Mode & Sleep Timer Ready!");
+}
+
+void loop() {
+  unsigned long now = millis();
+  
+  // 1. Cek Timeout Sleep Mode (Jika inaktif selama 10 detik)
+  if (!isSleeping && (now - lastActivityTime >= sleepTimeout)) {
+    goToSleep();
+  }
+  
+  // 2. Update data otomatis berkala (tetap aktif di background saat tidur)
+  if (now - lastUpdate >= updateInterval) {
+    lastUpdate = now;
+    randomizeData();
+    logDataToSD(); // Tetap simpan data ke SD Card saat tidur
+    
+    // Hanya update gambar layar jika LCD sedang aktif (bangun)
+    if (!isSleeping) {
+      if (currentPage == 0) {
+        updateDashboard();
+      } else if (currentPage == 1) {
+        if (!showModal) {
+          updateCells();
+        } else {
+          updateModalContent(modalType, modalId);
+        }
+      }
+      Serial.println("Data telemetry diperbarui otomatis (Layar & SD Card).");
+    } else {
+      Serial.println("Data telemetry diperbarui otomatis di background (SD Card).");
+    }
+  }
+  
+  // 3. Update animasi jalur sirkuit tiap 80ms (hanya di Halaman Utama & saat bangun)
+  if (!isSleeping && currentPage == 0 && (now - lastAnimUpdate >= animInterval)) {
+    lastAnimUpdate = now;
+    updateCircuitAnimation();
+  }
+  
+  // 4. Baca Touchscreen analog tiap 50ms
+  if (now - lastTouchPoll >= touchPollInterval) {
+    lastTouchPoll = now;
+    
+    uint16_t x, y;
+    if (Touch_getXY(&x, &y)) {
+      if (isSleeping) {
+        // Sentuhan pertama saat tidur -> Membangunkan layar (tidak trigger aksi)
+        wakeUp();
+        lastTouchTime = now; // Hindari sentuhan ganda tak disengaja
+      } else {
+        if (now - lastTouchTime > touchDebounce) {
+          lastTouchTime = now;
+          lastActivityTime = now; // Reset timer aktivitas karena ada sentuhan baru
+          Serial.printf("Touch detect! X=%d, Y=%d\n", x, y);
+          
+          if (currentPage == 0) {
+            // Cek jika menekan area lingkaran SOC tengah (x: 170-310, y: 90-230)
+            if (x >= 170 && x <= 310 && y >= 90 && y <= 230) {
+              currentPage = 1;
+              showModal = false;
+              prev_x1 = 0; // Reset koordinat animasi agar tidak menyisakan sisa titik putih di halaman Cells
+              drawStaticCells();
+              updateCells();
+              Serial.println("Navigated to Cells Page via SOC Gauge click.");
+            }
+          } else if (currentPage == 1) {
+            if (showModal) {
+              // Cek jika menekan tombol TUTUP (x: 180-300, y: 215-250)
+              if (x >= 180 && x <= 300 && y >= 215 && y <= 250) {
+                showModal = false;
+                drawStaticCells();
+                updateCells();
+                Serial.println("Modal closed.");
+              }
+            } else {
+              // Cek jika menekan tombol BACK (x: 10-80, y: 10-40)
+              if (x >= 10 && x <= 80 && y >= 10 && y <= 40) {
+                currentPage = 0;
+                prev_x1 = 0; // Reset koordinat animasi agar digambar segar
+                drawStaticDashboard();
+                updateDashboard();
+                Serial.println("Navigated back to Dashboard.");
+              } else {
+                // Cek jika menekan salah satu dari 16 Cell box
+                int cellW = 80;
+                int cellH = 46;
+                int colSpace = 6;
+                int rowSpace = 8;
+                bool touchedElement = false;
+                
+                for (int r = 0; r < 4; r++) {
+                  int boxY = 65 + r * (cellH + rowSpace);
+                  for (int c = 0; c < 4; c++) {
+                    int boxX = 10 + c * (cellW + colSpace);
+                    if (x >= boxX && x <= (boxX + cellW) && y >= boxY && y <= (boxY + cellH)) {
+                      modalType = 1;
+                      modalId = r * 4 + c + 1;
+                      showModal = true;
+                      drawModal(modalType, modalId);
+                      touchedElement = true;
+                      Serial.printf("Cell C%d clicked.\n", modalId);
+                      break;
+                    }
+                  }
+                  if (touchedElement) break;
+                }
+                
+                // Cek jika menekan salah satu dari 4 Temp sensor box
+                if (!touchedElement) {
+                  int tempX = 360;
+                  int tempW = 110;
+                  int tempH = 46;
+                  int tempSpace = 8;
+                  for (int i = 0; i < 4; i++) {
+                    int boxY = 65 + i * (tempH + tempSpace);
+                    if (x >= tempX && x <= (tempX + tempW) && y >= boxY && y <= (boxY + tempH)) {
+                      modalType = 2;
+                      modalId = i + 1;
+                      showModal = true;
+                      drawModal(modalType, modalId);
+                      Serial.printf("Temp sensor T%d clicked.\n", modalId);
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

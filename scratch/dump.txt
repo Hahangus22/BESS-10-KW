@@ -1,0 +1,490 @@
+=== PAGE 1 ===
+ 
+              
+AMETHYST  Series  AT  Command  Manual  v1.0   Network  Module                  PT.  Elektrik  Baterai  Indonesia  Kebakkramat,  Karanganyar,  Jawa  Tengah  Indonesia  contact@elbibattery.com  elbibattery.com  
+ 
+
+
+=== PAGE 2 ===
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.0   Document  Title  :  AMETHYST  Series  AT  Command  Manual  Version   :  1.0  Date    :  13/03/2026  Status    :  Released   Copyright  (c)  2026  PT.  Elektrik  Baterai  Indonesia     
+ 
+
+
+=== PAGE 3 ===
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.0   Daftar  Isi   1.  AT  Command  Dasar ............................................................................................................................................................... 1 1.1  AT ............................................................................................................................................................................................... 1 1.2  AT+VER ................................................................................................................................................................................. 1 2.  AT  Command  untuk  Jaringan ........................................................................................................................................ 1 2.1  AT+NETMODE .................................................................................................................................................................. 1 3.  AT  Command  untuk  WiFi ................................................................................................................................................. 2 3.1  AT+WIFIRESET ................................................................................................................................................................ 2 4.  AT  Command  untuk  SIM .................................................................................................................................................. 2 4.1  AT+SIMAPN ...................................................................................................................................................................... 2 5.  AT  Command  untuk  MQTT .............................................................................................................................................. 3 5.1  AT+MQTTINTERVAL ..................................................................................................................................................... 3 5.2  AT+MQTTCLIENTID ..................................................................................................................................................... 3 5.3  AT+MQTTBROKER ...................................................................................................................................................... 3 5.4  AT+MQTTAUTH ............................................................................................................................................................. 4 5.5  AT+MQTTTOPICPUB ................................................................................................................................................. 4 5.6  AT+MQTTTOPICSUB .................................................................................................................................................. 5 5.7  AT+MQTTSUBMSG ...................................................................................................................................................... 5 6.  AT  Command  untuk  Pengiriman  Data ................................................................................................................... 5 6.1  AT+INSERTDATA ............................................................................................................................................................ 5 7.  AT  Command  untuk  Informasi  Cicilan .................................................................................................................... 6 7.1  AT+CICILINFO .................................................................................................................................................................. 6 7.2  AT+CICILSTATUS ........................................................................................................................................................... 6  
+ 
+
+
+=== PAGE 4 ===
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.0   1.  AT  Command  Dasar  1.1  AT  Perintah  ini  digunakan  untuk  mengecek  komunikasi  perangkat  host  dengan  modul  
+Amethyst.
+ 
+Harap
+ 
+tidak
+ 
+memanggil
+ 
+perintah
+ 
+AT
+ 
+lainnya
+ 
+jika
+ 
+belum
+ 
+mendapat
+ 
+response
+ 
+dari
+ 
+perintah
+ 
+ini.
+  AT  Cek  komunikasi  Amethyst  
+Execution  Command  AT  
+Response   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  -   1.2  AT+VER  Perintah  ini  digunakan  untuk  mengetahui  versi  hardware  dan  ﬁrmware  Amethyst.  Versi  
+ini
+ 
+disimpan
+ 
+di
+ 
+dalam
+ 
+perangkat
+ 
+modul
+ 
+Amethyst
+ 
+dan
+ 
+tidak
+ 
+dapat
+ 
+di
+ 
+ubah.
+  AT+VER  Cek  versi  Amethyst  
+Execution  Command  AT+VER  
+Response   +VERSION:  Hardware  Version  :  <hw_version>  Firmware  Version  :  <fw_version>   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  500ms   2.  AT  Command  untuk  Jaringan  2.1  AT+NETMODE  Perubahan  pemilihan  mode  jaringan  dapat  dilakukan  melalui  perintah  ini.  Pada  mode  
+otomatis,
+ 
+koneksi
+ 
+WiFi
+ 
+diprioritaskan
+ 
+sedangkan
+ 
+jaringan
+ 
+SIM
+ 
+sebagai
+ 
+backup
+ 
+dengan
+ 
+WiFi
+ 
+tetap
+ 
+menyala
+ 
+untuk
+ 
+mencari
+ 
+jaringan
+ 
+WiFi.
+ 
+Pada
+ 
+single
+ 
+mode,
+ 
+ketika
+ 
+salah
+ 
+satu
+ 
+jaringan
+ 
+sedang
+ 
+berlangsung,
+ 
+infrastruktur
+ 
+jaringan
+ 
+lainnya
+ 
+dimatikan.
+ 
+Mode
+ 
+ini
+ 
+perlu
+ 
+diatur
+ 
+setiap
+ 
+kali
+ 
+daya
+ 
+Amethyst
+ 
+diaktifkan.
+  AT+NETMODE  Mode  jaringan  Amethyst  
+Read  Command  AT+NETMODE?  
+Response  +NETMODE:  <mode>   OK  
+Write  Command  AT+NETMODE=<mode>  
+Response   OK  
+1  
+
+
+=== PAGE 5 ===
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.0   Parameter  Saving  Mode  NO_SAVE  
+Max  Response  Time  5000ms   Deﬁned  Values  <mode>  Mode  jaringan  dideﬁnisikan  sebagai  berikut:   0   Mode  otomatis.  WiFI  sebagai  prioritas  1    Single  mode   LTE  only.   2   Single  mode  WiFi  only.   3.  AT  Command  untuk  WiFi  3.1  AT+WIFIRESET  Perintah  ini  digunakan  untuk  menghapus  ssid  dan  password  yang  disimpan  di  dalam  
+modul
+ 
+Amethyst.
+ 
+Untuk
+ 
+menginput
+ 
+ssid
+ 
+dan
+ 
+password
+ 
+WiFi
+ 
+yang
+ 
+baru,
+ 
+pengguna
+ 
+perlu
+ 
+terhubung
+ 
+ke
+ 
+hotspot
+ 
+Amethyst
+ 
+dan
+ 
+mengakses
+ 
+192.168.4.1
+ 
+untuk
+ 
+mengubah
+ 
+kredensial.
+  AT+WIFIRESET  Reset  kredensial  WiFi  
+Execution  Command  AT+WIFIRESET  
+Response   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  500ms   4.  AT  Command  untuk  SIM  4.1  AT+SIMAPN  Perintah  ini  digunakan  mengubah  APN  kartu  sim  sebelum  terhubung  ke  jaringan  seluler.  
+APN
+ 
+akan
+ 
+disimpan
+ 
+di
+ 
+dalam
+ 
+modul
+ 
+Amethyst
+ 
+untuk
+ 
+digunakan
+ 
+pada
+ 
+proses-proses
+ 
+selanjutnya.
+  AT+SIMAPN  Ubah  APN  jaringan  seluer  
+Read  Command  AT+SIMAPN?  
+Response  +SIMAPN  :  <apn>   OK  
+Write  Command  AT+SIMAPN=<apn>  
+Response   OK  
+Parameter  Saving  Mode  AUTO_SAVE  
+Max  Response  Time  500ms   
+2  
+
+
+=== PAGE 6 ===
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.0   5.  AT  Command  untuk  MQTT  5.1  AT+MQTTINTERVAL  Perintah  ini  digunakan  untuk  mengubah  jangka  waktu  antar  pengiriman  data  melalui  
+protokol
+ 
+MQTT.
+ 
+Nilai
+ 
+interval
+ 
+dikirim
+ 
+dalam
+ 
+satuan
+ 
+detik.
+ 
+Secara
+ 
+default,
+ 
+nilai
+ 
+interval
+ 
+adalah
+ 
+30
+ 
+detik.
+  AT+MQTTINTERVAL  Ubah  interval  pengiriman  data  MQTT  
+Test  Command  AT+MQTTINTERVAL=?  
+Response   +MQTTINTERVAL:  (<range>)   OK  
+Read  Command  AT+MQTTINTERVAL?  
+Response  +MQTTINTERVAL  :  <interval>   OK  
+Write  Command  AT+MQTTINTERVAL=<interval>  
+Response   OK  
+Parameter  Saving  Mode  NO_SAVE  
+Max  Response  Time  500ms   5.2  AT+MQTTCLIENTID  Perintah  ini  digunakan  untuk  mengubah  client  id  perangkat  di  MQTT.  Secara  default,  
+client
+ 
+id
+ 
+sudah
+ 
+diisi
+ 
+dengan
+ 
+“Amethyst-<hv_uuid>”.
+ 
+Hanya
+ 
+panggil
+ 
+perintah
+ 
+ini
+ 
+jika
+ 
+tidak
+ 
+ingin
+ 
+menggunakan
+ 
+client
+ 
+id
+ 
+bawaan.
+ 
+  AT+MQTTCLIENTID  Ubah  client  id  MQTT  
+Read  Command  AT+MQTTCLIENTID?  
+Response  +MQTTCLIENTID  :  <client_id>   OK  
+Write  Command  AT+MQTTCLIENTID=<client_id>  
+Response   OK  
+Parameter  Saving  Mode  AUTO_SAVE  
+Max  Response  Time  500ms   5.3  AT+MQTTBROKER  Perintah  ini  digunakan  untuk  mengubah  URL  dan  port  broker  MQTT.  URL  dan  port  
+disimpan
+ 
+di
+ 
+dalam
+ 
+modul
+ 
+untuk
+ 
+digunakan
+ 
+kembali.
+   
+3  
+
+
+=== PAGE 7 ===
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.0   AT+MQTTBROKER  Ubah  URL  dan  port  broker  MQTT  
+Read  Command  AT+MQTTBROKER?  
+Response  +MQTTCLIENTID  :  <url>,<port>   OK  
+Write  Command  AT+MQTTBROKER=<url>,<port>  
+Response   OK  
+Parameter  Saving  Mode  AUTO_SAVE  
+Max  Response  Time  500ms   5.4  AT+MQTTAUTH  Perintah  ini  digunakan  untuk  mengubah  username  dan  password  untuk  proses  
+autentikasi
+ 
+MQTT.
+ 
+  AT+MQTTAUTH  Ubah  username  dan  password   MQTT  
+Read  Command  AT+MQTTAUTH?  
+Response  +MQTTAUTH  :  <user>,<pass>   OK  
+Write  Command  AT+MQTTAUTH=<user>,<pass>  
+Response   OK  
+Parameter  Saving  Mode  AUTO_SAVE  
+Max  Response  Time  500ms   5.5  AT+MQTTTOPICPUB  Perintah  ini  digunakan  untuk  menyimpan  alamat  topik  publish  pesan  MQTT.   AT+MQTTTOPICPUB  Simpan  topik  publish  MQTT  
+Read  Command  AT+MQTTTOPICPUB?  
+Response  +MQTTTOPICPUB  :  <topic>   OK  
+Write  Command  AT+MQTTTOPICPUB=<topic>  
+Response   OK  
+Parameter  Saving  Mode  AUTO_SAVE  
+Max  Response  Time  500ms    
+4  
+
+
+=== PAGE 8 ===
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.0   5.6  AT+MQTTTOPICSUB  Perintah  ini  digunakan  untuk  menyimpan  alamat  topik  subscribe  pesan  MQTT.   AT+MQTTTOPICSUB  Simpan  topik  subscribe  MQTT  
+Read  Command  AT+MQTTTOPICSUB?  
+Response  +MQTTTOPICSUB  :  <topic>   OK  
+Write  Command  AT+MQTTTOPICSUB=<topic>  
+Response   OK  
+Parameter  Saving  Mode  AUTO_SAVE  
+Max  Response  Time  500ms   5.7  AT+MQTTSUBMSG  Perintah  ini  digunakan  untuk  mengambil  pesan  terakhir  di  topik  subscribe  MQTT.    AT+MQTTTOPICSUB  Ambil  pesan  subscribe  MQTT  
+Read  Command  AT+MQTTSUBMSG?  
+Response  +MQTTSUBMSG  :  <msg>   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  500ms   6.  AT  Command  untuk  Pengiriman  Data  6.1  AT+INSERTDATA  Perintah  ini  digunakan  untuk  menginput  data  ke  buffer  JSON  modul  Amethyst  sebelum  
+periode
+ 
+pengiriman
+ 
+yang
+ 
+sudah
+ 
+diatur
+ 
+di
+ 
+MQTTINTERVAL
+.
+ 
+Buffer
+ 
+akan
+ 
+secara
+ 
+otomatis
+ 
+dikosongkan
+ 
+setelah
+ 
+pengiriman
+ 
+berhasil
+ 
+dilakukan.
+ 
+  AT+INSERTDATA  Input  data  buffer  JSON  Amethyst  
+Write  Command  AT+INSERTDATA=<path>,<data>  
+Response   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  500ms   
+5  
+
+
+=== PAGE 9 ===
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.0   7.  AT  Command  untuk  Informasi  Cicilan  7.1  AT+CICILINFO  Perintah  ini  digunakan  untuk  mengambil  informasi  terbaru  terkait  cicilan.  Data  yang  
+diterima
+ 
+antara
+ 
+lain
+ 
+device
+ 
+id,
+ 
+tenggat
+ 
+pembayaran
+ 
+dan
+ 
+timestamp
+ 
+server.
+  AT+CICILINFO  Informasi  cicilan  
+Read  Command  AT+CICILINFO?  
+Response  +CICILINFO  :  <info_cicil>   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  500ms   7.2  AT+CICILSTATUS  Perintah  ini  digunakan  untuk  mengambil  informasi  status  cicilan.  Apakah  terlambat  
+bayar
+ 
+atau
+ 
+tidak
+ 
+dengan
+ 
+membandingkan
+ 
+waktu
+ 
+sekarang
+ 
+dengan
+ 
+tenggat
+ 
+bayar
+ 
+cicilan..
+  AT+CICILSTATUS  Status  cicilan  
+Read  Command  AT+CICILSTATUS?  
+Response  +CICILSTATUS  :  <status>   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  500ms   Deﬁned  Values  <status>  Status  cicilan  dideﬁnisikan  sebagai  berikut:   0   Tidak  terlambat  bayar  1    Terlambat  bayar     
+6  
+
+

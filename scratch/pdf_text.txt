@@ -1,0 +1,693 @@
+Total pages: 16
+
+--- Page 1 ---
+ 
+              
+AMETHYST  Series  AT  Command  Manual  v1.1   IoT  Gateway  Module                  PT.  Elektrik  Baterai  Indonesia  Kebakkramat,  Karanganyar,  Jawa  Tengah  Indonesia  contact@elbibattery.com  elbibattery.com  
+ 
+
+--- Page 2 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1   Document  Title  :  AMETHYST  Series  AT  Command  Manual  Version   :  1.1  Date    :  04/06/2026  Status    :  Released    Revision  History   Version   Description  Modiﬁer  Date  
+v1.0  Initial  release  Fandi  Adinata  13/03/2026  
+v1.1  
+New  features  :  -  Add  AT+MQTTTBS  -  Add  AT+UPDATE  -  Add  AT+SYSTEMTIME  Modify  features:  -  Auto  save  AT+NETMODE  value  -  Add  topic  index  AT+MQTTTOPICSUB  -  Add  topic  index  AT+MQTTSUBMSG  -  Add  payload  and  object  format  for  AT+INSERTDATA  Remove  features:  -  Remove  AT+SIMAPN  
+Fandi  Adinata  04/06/2026  
+   
+ 
+
+--- Page 3 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1   Daftar  Isi   1.  AT  Command  Dasar ............................................................................................................................................................... 1 1.1  AT ............................................................................................................................................................................................... 1 1.2  AT+VER ................................................................................................................................................................................. 1 1.3  AT+UPDATE ....................................................................................................................................................................... 1 1.4  AT+SYSTEMTIME ........................................................................................................................................................... 2 2.  AT  Command  untuk  Jaringan ....................................................................................................................................... 2 2.1  AT+NETMODE ................................................................................................................................................................. 2 3.  AT  Command  untuk  WiFi ................................................................................................................................................. 3 3.1  AT+WIFIRESET ................................................................................................................................................................ 3 4.  AT  Command  untuk  MQTT ............................................................................................................................................. 3 4.1  AT+MQTTINTERVAL .................................................................................................................................................... 3 4.2  AT+MQTTCLIENTID .................................................................................................................................................... 4 4.3  AT+MQTTBROKER ..................................................................................................................................................... 4 4.4  AT+MQTTAUTH ............................................................................................................................................................. 4 4.5  AT+MQTTTOPICPUB ................................................................................................................................................. 5 4.6  AT+MQTTTOPICSUB .................................................................................................................................................. 5 4.7  AT+MQTTSUBMSG ..................................................................................................................................................... 6 4.8  AT+MQTTTBS ................................................................................................................................................................. 6 5.  AT  Command  untuk  Pengiriman  Data ................................................................................................................... 6 5.1  AT+INSERTDATA ............................................................................................................................................................ 6 Format  Pengiriman  Data ...................................................................................................................................................... 8 Format  Object  Data  Tiap  Komponen .......................................................................................................................... 12  
+ 
+
+--- Page 4 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1   1.  AT  Command  Dasar  1.1  AT  Perintah  ini  digunakan  untuk  mengecek  komunikasi  perangkat  host  dengan  modul  
+Amethyst.
+ 
+Harap
+ 
+tidak
+ 
+memanggil
+ 
+perintah
+ 
+AT
+ 
+lainnya
+ 
+jika
+ 
+belum
+ 
+mendapat
+ 
+response
+ 
+dari
+ 
+perintah
+ 
+ini.
+  AT      Cek  komunikasi  Amethyst  
+Execution  Command  AT  
+Response   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  -   1.2  AT+VER  Perintah  ini  digunakan  untuk  mengetahui  versi  hardware  dan  ﬁrmware  Amethyst.  Versi  
+ini
+ 
+disimpan
+ 
+di
+ 
+dalam
+ 
+perangkat
+ 
+modul
+ 
+Amethyst
+ 
+dan
+ 
+tidak
+ 
+dapat
+ 
+di
+ 
+ubah.
+  AT+VER      Cek  versi  Amethyst  
+Execution  Command  AT+VER  
+Response   +VERSION:  Hardware  Version  :  <hw_version>  Firmware  Version  :  <fw_version>   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  500ms   1.3  AT+UPDATE  Perintah  ini  digunakan  untuk  pembaruan  ﬁrmware  di  dalam  hardware  Amethyst  dengan  
+versi
+ 
+terbaru
+ 
+yang
+ 
+tersedia.
+ 
+Perangkat
+ 
+akan
+ 
+di-restart
+ 
+secara
+ 
+otomatis
+ 
+setelah
+ 
+proses
+ 
+pembaruan
+ 
+selesai.
+ 
+Lama
+ 
+proses
+ 
+pembaruan
+ 
+sangat
+ 
+bergantung
+ 
+dengan
+ 
+kekuatan
+ 
+sinyal
+ 
+jaringan
+ 
+internet
+ 
+yang
+ 
+tersedia.
+  AT+UPDATE      Update  ﬁrmware  Amethyst  
+Read  Command  AT+UPDATE?  
+Response  OK  
+Execution  Command  AT+UPDATE  
+Response   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  -  
+1  
+
+--- Page 5 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1   1.4  AT+SYSTEMTIME  Perintah  ini  digunakan  untuk  mengambil  data  waktu  dari  sistem  perangkat.  Waktu  yang  
+dikirim
+ 
+dalam
+ 
+GMT+0
+.
+ 
+Data
+ 
+<date>
+ 
+dalam
+ 
+format
+ 
+DDMMYY
+,
+ 
+sedangkan
+ 
+<time>
+ 
+dalam
+ 
+format
+ 
+HHMMSS
+.
+  AT+UPDATE      Update  ﬁrmware  Amethyst  
+Read  Command  AT+SYSTEMTIME?  
+Response  OK  
+Execution  Command  AT+SYSTEMTIME  
+Response   +SYSTEMTIME:  <date>,<time>   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  500ms   Contoh  Penggunaan  :    AT+SYSTEMTIME?  OK   AT+SYSTEMTIME  +SYSTEMTIME:  190526,51204    2.  AT  Command  untuk  Jaringan  2.1  AT+NETMODE  Perubahan  pemilihan  mode  jaringan  dapat  dilakukan  melalui  perintah  ini.  Pada  mode  
+otomatis,
+ 
+koneksi
+ 
+WiFi
+ 
+diprioritaskan
+ 
+sedangkan
+ 
+jaringan
+ 
+SIM
+ 
+sebagai
+ 
+backup
+ 
+dengan
+ 
+WiFi
+ 
+tetap
+ 
+menyala
+ 
+untuk
+ 
+mencari
+ 
+jaringan
+ 
+WiFi.
+ 
+Pada
+ 
+single
+ 
+mode,
+ 
+ketika
+ 
+salah
+ 
+satu
+ 
+jaringan
+ 
+sedang
+ 
+berlangsung,
+ 
+infrastruktur
+ 
+jaringan
+ 
+lainnya
+ 
+dimatikan.
+ 
+Mode
+ 
+ini
+ 
+perlu
+ 
+diatur
+ 
+setiap
+ 
+kali
+ 
+daya
+ 
+Amethyst
+ 
+diaktifkan.
+  AT+NETMODE      Mode  jaringan  Amethyst  
+Read  Command  AT+NETMODE?  
+Response  +NETMODE:  <mode>   OK  
+Write  Command  AT+NETMODE=<mode>  
+Response   OK  
+Parameter  Saving  Mode  AUTO_SAVE  
+Max  Response  Time  5000ms  
+2  
+
+--- Page 6 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1   Deﬁned  Values  <mode>  Mode  jaringan  dideﬁnisikan  sebagai  berikut:   0   Mode  otomatis.  WiFI  sebagai  prioritas  1    Single  mode   LTE  only.   2   Single  mode  WiFi  only.   3.  AT  Command  untuk  WiFi  3.1  AT+WIFIRESET  Perintah  ini  digunakan  untuk  menghapus  ssid  dan  password  yang  disimpan  di  dalam  
+modul
+ 
+Amethyst.
+ 
+Untuk
+ 
+menginput
+ 
+ssid
+ 
+dan
+ 
+password
+ 
+WiFi
+ 
+yang
+ 
+baru,
+ 
+pengguna
+ 
+perlu
+ 
+terhubung
+ 
+ke
+ 
+hotspot
+ 
+Amethyst
+ 
+dan
+ 
+mengakses
+ 
+192.168.4.1
+ 
+untuk
+ 
+mengubah
+ 
+kredensial.
+  AT+WIFIRESET      Reset  kredensial  WiFi  
+Execution  Command  AT+WIFIRESET  
+Response   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  500ms   4.  AT  Command  untuk  MQTT  4.1  AT+MQTTINTERVAL  Perintah  ini  digunakan  untuk  mengubah  jangka  waktu  antar  pengiriman  data  melalui  
+protokol
+ 
+MQTT.
+ 
+Nilai
+ 
+interval
+ 
+dikirim
+ 
+dalam
+ 
+satuan
+ 
+detik.
+ 
+Secara
+ 
+default,
+ 
+nilai
+ 
+interval
+ 
+adalah
+ 
+30
+ 
+detik.
+  AT+MQTTINTERVAL      Ubah  interval  pengiriman  data  MQTT  
+Test  Command  AT+MQTTINTERVAL=?  
+Response   +MQTTINTERVAL:  (<interval_range>)   OK  
+Read  Command  AT+MQTTINTERVAL?  
+Response  +MQTTINTERVAL  :  <interval>   OK  
+Write  Command  AT+MQTTINTERVAL=<interval>  
+Response   OK  
+Parameter  Saving  Mode  NO_SAVE  
+Max  Response  Time  500ms   
+3  
+
+--- Page 7 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1   4.2  AT+MQTTCLIENTID  Perintah  ini  digunakan  untuk  mengubah  client  id  perangkat  di  MQTT.  Secara  default,  
+client
+ 
+id
+ 
+sudah
+ 
+diisi
+ 
+dengan
+ 
+“
+Amethyst-<hw_uuid>”
+.
+ 
+Hanya
+ 
+panggil
+ 
+perintah
+ 
+ini
+ 
+jika
+ 
+tidak
+ 
+ingin
+ 
+menggunakan
+ 
+client
+ 
+id
+ 
+bawaan.
+ 
+  AT+MQTTCLIENTID      Ubah  client  id  MQTT  
+Read  Command  AT+MQTTCLIENTID?  
+Response  +MQTTCLIENTID  :  <client_id>   OK  
+Write  Command  AT+MQTTCLIENTID=<client_id>  
+Response   OK  
+Parameter  Saving  Mode  AUTO_SAVE  
+Max  Response  Time  500ms   4.3  AT+MQTTBROKER  Perintah  ini  digunakan  untuk  mengubah  URL  dan  port  broker  MQTT.  URL  dan  port  
+disimpan
+ 
+di
+ 
+dalam
+ 
+modul
+ 
+untuk
+ 
+digunakan
+ 
+kembali.
+  AT+MQTTBROKER      Ubah  URL  dan  port  broker  MQTT  
+Read  Command  AT+MQTTBROKER?  
+Response  +MQTTBROKER  :  <url>,<port>   OK  
+Write  Command  AT+MQTTBROKER=<url>,<port>  
+Response   OK  
+Parameter  Saving  Mode  AUTO_SAVE  
+Max  Response  Time  500ms   4.4  AT+MQTTAUTH  Perintah  ini  digunakan  untuk  mengubah  username  dan  password  untuk  proses  
+autentikasi
+ 
+MQTT.
+ 
+  AT+MQTTAUTH      Ubah  username  dan  password   MQTT  
+Read  Command  AT+MQTTAUTH?  
+Response  +MQTTAUTH  :  <user>,<pass>   OK  
+Write  Command  AT+MQTTAUTH=<user>,<pass>  
+Response   OK  
+4  
+
+--- Page 8 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1   Parameter  Saving  Mode  AUTO_SAVE  
+Max  Response  Time  500ms   4.5  AT+MQTTTOPICPUB  Perintah  ini  digunakan  untuk  menyimpan  alamat  topik  publish  pesan  MQTT.   AT+MQTTTOPICPUB      Simpan  topik  publish  MQTT  
+Read  Command  AT+MQTTTOPICPUB?  
+Response  +MQTTTOPICPUB  :  <topic>   OK  
+Write  Command  AT+MQTTTOPICPUB=<topic>  
+Response   OK  
+Parameter  Saving  Mode  AUTO_SAVE  
+Max  Response  Time  500ms   4.6  AT+MQTTTOPICSUB  Perintah  ini  digunakan  untuk  menyimpan  alamat  topik  subscribe  pesan  MQTT.   Efek  
+perubahan
+ 
+baru
+ 
+akan
+ 
+terjadi
+ 
+setelah
+ 
+perangkat
+ 
+di-restart
+ 
+atau
+ 
+jika
+ 
+perangkat
+ 
+berpindah
+ 
+mode
+ 
+jaringan
+ 
+untuk
+ 
+memulai
+ 
+ulang
+ 
+koneksi
+ 
+MQTT.
+  AT+MQTTTOPICSUB      Simpan  topik  subscribe  MQTT  
+Read  Command  AT+MQTTTOPICSUB?  
+Response  +MQTTTOPICSUB  :   <idx>,<topic>   OK  
+Write  Command  AT+MQTTTOPICSUB=<idx>,<topic>  
+Response   OK  
+Parameter  Saving  Mode  AUTO_SAVE  
+Max  Response  Time  500ms         
+5  
+
+--- Page 9 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1   4.7  AT+MQTTSUBMSG  Perintah  ini  digunakan  untuk  mengambil  pesan  terakhir  di  topik  subscribe  MQTT.  Pesan  
+dipilih
+ 
+berdasarkan
+ 
+indeks
+  AT+MQTTTOPICSUB      Ambil  pesan  subscribe  MQTT  
+Test  Command  AT+MQTTSUBMSG=?  
+Response   +MQTTSUBMSG:  (<subscribe_topic_range>)   OK  
+Execution  Command  AT+MQTTSUBMSG=<idx>   
+Response  +MQTTSUBMSG  :  <msg>   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  500ms   4.8  AT+MQTTTBS  Perintah  ini  digunakan  untuk  cek  waktu  yang  tersisa  sebelum  publish  pesan  MQTT  
+berikutnya
+ 
+dilakukan
+ 
+(
+time
+ 
+before
+ 
+sending
+).
+  AT+MQTTTBS      Cek  waktu  tersisa  sebelum  pengiriman  MQTT  berikutnya  
+Execution  Command  AT+MQTTTBS  
+Response   +MQTTTBS  :  <tbs>   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  500ms   5.  AT  Command  untuk  Pengiriman  Data  5.1  AT+INSERTDATA  Perintah  ini  digunakan  untuk  menginput  data  ke  buffer  JSON  modul  Amethyst  sebelum  
+periode
+ 
+pengiriman
+ 
+yang
+ 
+sudah
+ 
+diatur
+ 
+di
+ 
+MQTTINTERVAL
+.
+ 
+Buffer
+ 
+akan
+ 
+secara
+ 
+otomatis
+ 
+dikosongkan
+ 
+setelah
+ 
+pengiriman
+ 
+berhasil
+ 
+dilakukan.
+ 
+  AT+INSERTDATA      Input  data  buffer  JSON  Amethyst  
+Write  Command  AT+INSERTDATA=<path>,<data>  
+Response   OK  
+Parameter  Saving  Mode  -  
+Max  Response  Time  500ms  
+6  
+
+--- Page 10 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1   Contoh  Penggunaan  :   AT+INSERTDATA=voltage,3.243  OK   AT+INSERTDATA=voltage/pack,52.12  OK   AT+INSERTDATA=voltage/cells,3,243,3,233,3,242  OK   Harap  baca  bagian  “ format  pengiriman  data ”  dan  “ format  object  data  tiap  komponen ”     
+7  
+
+--- Page 11 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1   Format  Pengiriman  Data   {    "device_id":  "Amethyst-1C2A26C8E720",    “hw”:  “amethyst”,    “net”:  “WiFi”,    “system_date”  :  240526,    “system_time”  :  163723,    "data":  {      "loc":  {},                 //  diisi  otomatis      “inverter”  :  [{}],      “bms”  :  [{}],      “sensor”  :  [{}],      “others  :  [{}]    }  }   Berikut  adalah  format  input  yang  didukung:   1.  Input  nilai  tunggal  Menyimpan  satu  nilai  ke  key  tertentu    AT+INSERTDATA=sensor/temperature,25.5  
+ {    "sensor":  {      "temperature":  25.5    }  }  
+ 2.  Input  banyak  nilai  sekaligus  Menyimpan  beberapa  nilai  sekaligus  ke  dalam  array,  dipisah  koma.    AT+INSERTDATA=sensor/temperature,25.5,26.0,24.8  
+ {    "sensor":  {      "temperature":  [  25.5,  26.0,  24.8  ]    }  }  
+     
+8  
+
+--- Page 12 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1   3.  Nested  object  Membuat  hirarki  object  bertingkat  menggunakan  “/“  sebagai  pemisah.   AT+INSERTDATA=sensor/indoor/temperature,25.5  
+ {    "sensor":  {      "indoor":  {        "temperature":  25.5      }    }  }  
+ 4.  Object  dalam  array  Menggunakan  “[N]“  untuk  menulis  ke  slot  index  tertentu  dalam  array  secara  bertahap.   AT+INSERTDATA=inverter/[0]/voltage,220  AT+INSERTDATA=inverter/[0]/current,5  AT+INSERTDATA=inverter/[1]/voltage,215  
+ {    "inverter":  [      {        "voltage":  220,        "current":  5      },      {        "voltage":  215      }    ]  }  
+ 5.  Array  dalam  array  index  Menyimpan  multiple  value  ke  dalam  object  yang  berada  di  slot  array  tertentu.   AT+INSERTDATA=inverter/[0]/phases,220,221,219  
+ {    "inverter":  [      {        "phases":  [  220,  221,  219  ]      }    ]  }  
+9  
+
+--- Page 13 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1    6.  Nested  Object  +  Array  Kombinasi  object  bertingkat  dengan  array  —  object  dibuat  lebih  dulu,  baru  array  di  
+dalamnya.
+ 
+  AT+INSERTDATA=site/inverter/[0]/voltage,220  AT+INSERTDATA=site/inverter/[1]/voltage,215  
+ {    "site":  {      "inverter":  [        {          "voltage":  220        },        {          "voltage":  215        }      ]    }  }  
+ 7.  Skip  index  (auto-ﬁll  null  object)  Jika  index  tidak  berurutan,  slot  yang  terlewat  otomatis  diisi  object  kosong  “{}”.   AT+INSERTDATA=inverter/[0]/voltage,220  AT+INSERTDATA=inverter/[2]/voltage,215  
+ {    "inverter":  [      {        "voltage":  220      },      null ,      {        "voltage":  215      }    ]  }  
+        
+10  
+
+--- Page 14 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1   8.  Overwrite  value  Menulis  ke  path  yang  sudah  ada  akan  menimpa  nilai  sebelumnya.   AT+INSERTDATA=sensor/temperature,25.5  AT+INSERTDATA=sensor/temperature,30.0  
+ {    "sensor":  {      "temperature":  30.0    }  }  
+   
+11  
+
+--- Page 15 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1   Format  Object  Data  Tiap  Komponen  Apabila  terdapat  lebih  dari  satu  komponen  yang  sama,  maka  object  data  berikutnya  
+di-
+append
+ 
+ke
+ 
+dalam
+ 
+array
+ 
+masing-masing.
+  Format  data  device  tunggal  ( tetap  dalam  bentuk  array )  “inverter”  :  [{}]  “bms”  :  [{}]  “hvac”  :  [{}]  “sensor”  :  [{}]  
+ Format  data  multi  device  “inverter”  :  [{},  {}]  “bms”  :  [{},  {}]  “hvac”  :  [{},  {}]  “sensor”  :  [{},  {}]  
+  Format  objek  data  inverter   {    “id”:  “1”,    "error_code":  0,    "battery":  {      "power":  [1580.0,  1030.0],      "energy":  null,      "voltage":  [513.2,512.5],      "timestamp":  "2026-04-21  09:47:47  UTC+07:00"    },    "generator":  {      "power":  0.0,      "power_each":  [0.0,  0.0,  0.0],      "energy":  0.0,      "energy_total":  0.0,      "current":  [0.0,  0.0,  0.0],      "voltage":  [0.0,  0.0,  0.0],      "timestamp":  "2026-04-21  09:47:48  UTC+07:00"    },    "grid":  {      "power":  0.0,      "power_each":  [0.0,  0.0,  0.0],      "energy":  1.2,      "energy_total":  82.2,      "voltage":  [0.0,  0.0,  0.0],      "current":  [0.0,  0.0,  0.0],      "freq":  0.0,      "timestamp":  "2026-04-21  09:47:47  UTC+07:00"    },  
+12  
+
+--- Page 16 ---
+ 
+ AMETHYST  Series  AT  Command  Manual  v1.1     "load":  {      "power":  2642.0,      "power_each":  [2409.0,  110.0,  123.0],      "energy":  1.4,      "energy_total":  75.8,      "voltage":  [231.8,  233.0,  232.0],      "current":  [10.3,  0.4,  0.5],      "freq":  50.0,      "timestamp":  "2026-04-21  09:47:47  UTC+07:00"    },    "solar":  {      "power":  0.0,      "power_each":  [0.0,  0.0,  0.0,  0.0,  0.0,  0.0  ],      "energy":  0.0,      "energy_total":  0.0,      "voltage":  [0.0,  0.0,  0.0,  0.0,  0.0,  0.0  ],      "current":  [0.0,  0.0,  0.0,  0.0,  0.0,  0.0  ],      "timestamp":  "2026-04-21  09:47:46  UTC+07:00"    }  }  
+ Untuk  inverter  3  fasa,  maka  penulisan  value-nya  (baik  dalam  "generator",  "grid"  dan  
+"load"
+ 
+)
+ 
+adalah
+ 
+dalam
+ 
+bentuk
+ 
+array
+ 
+dengan
+ 
+3
+ 
+value
+ 
+di
+ 
+dalamnya.
+ 
+Sedangkan
+ 
+untuk
+ 
+inverter
+ 
+1
+ 
+fasa,
+ 
+maka
+ 
+penulisannya
+ 
+tetap
+ 
+array
+ 
+dengan
+ 
+3
+ 
+value,
+ 
+tapi
+ 
+value
+ 
+fasa
+ 
+lainnya
+ 
+0.
+  “power_each”  :  [2.1,  2.0,  2.2]      #  3-phase  inverter  “power_each”  :  [2.1,  0,  0]          #  1-phase  inverter  
+  Format  objek  data  BMS   {    "id":  "1",    "error_code":  0    "soc":  58.18,    "soh":  100.0,    "vpack":  512.8,    "ipack":  -3.3,    "cell_voltage":  [3206,  3206,  3203,  ...,  3205],    "temp":  [30.6,  30.0,  31.2,  ...,  29.8],  }  
+ Penambahan  data  lainnya  harus  didiskusikan  dengan  divisi  terkait  dan  akan  di-update  
+pada
+ 
+versi
+ 
+dokumen
+ 
+berikutnya.
+ 
+13  

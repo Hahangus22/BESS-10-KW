@@ -1,0 +1,30 @@
+1. Layar LCD Parallel (ILI9488) & Touch Screen (4-Wire Resistive)
+XP (Touch X+) / TFT D4: 27
+YM (Touch Y-) / TFT D5: 14
+YP (Touch Y+) / TFT WR: 4
+XM (Touch X-) / TFT DC (RS): 15
+TFT_CS   33  // LCD_CS
+TFT_DC   15  // LCD_RS (Data/Command)
+TFT_RST  32  // LCD_RST
+TFT_WR    4  // LCD_WR
+TFT_RD    2  // LCD_RD
+TFT_D0   12
+TFT_D1   13
+TFT_D2   26
+TFT_D3   25
+TFT_D4   17
+TFT_D5   16
+TFT_D6   27
+TFT_D7   14
+2. Modul SD Card (Melalui SPI2)
+SCK 18
+MISO/DO 19
+MOSI/DI 23
+CS 5
+3. BMS RS485 / Modbus (Melalui USART2 / Serial2)
+RX: 34
+TX: 21
+DE/RE (Direction Control): 2
+4. SIM Module / AT Commands (Melalui USART3 / Serial3)
+RX: 35
+TX: 22
